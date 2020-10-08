@@ -44,15 +44,19 @@ class ForceExtrapolationData:
 
     """
 
-    def __init__(self, findiffdb, fields_to_choose, db_params={}):
+    def __init__(self, findiffdb, fields_to_choose, db_params={}, atomsIS, atomsFS):
 
         self.findiffdb = findiffdb # database of results with finite diff calcualtions
         self.fields_to_choose = fields_to_choose
         self.db_params = db_params
+        self.atomsIS = atomsIS
+        self.atomsFS = atomsFS
 
         self.vibresults = {} # Results from the vibrational calculation 
         self.dmudR = {} # change of dipole moment accompanying disp of atoms 
         self.dFdG = {} # Change in the force with the electric field applied
+        self.modes = [] # Modes for doing the dot product
+
 
 
         # Default get the information from the forces and the electic field 
@@ -62,6 +66,7 @@ class ForceExtrapolationData:
     def _data_for_force(self):
         # get the data for extrapolating through dipoles and or forces 
         for row in self.findiffdb.select(**self.db_params):
+            # Populate the results dictionary based on some presets
             try:
                 conc = row.proton_conc
             except AttributeError:
@@ -74,21 +79,27 @@ class ForceExtrapolationData:
                 state = row.states.replace('_SP', '')
             except AttributeError:
                 state = 'state'
+
             indice_str = row.findiff # The indice that was moved and in which direction 
             direction = 'p' if 'p' in indice_str else 'm'
+
             field = row.field
             indice = int(indice_str.split(direction)[0])
+
             try:
                 disp = float(row.sampling.split('_')[-2])
             except ValueError:
                 continue
+
             atoms = row.toatoms()
+
             try:
                 # this is where SJM stores the dipole moment
                 dipole = atoms.get_dipole_moment()
             except ase.calculators.calculator.PropertyNotImplementedError:
                 # Not an sjm calculation
                 dipole = row.dipole_field
+
             forces = atoms.get_forces()[indice]
             self.vibresults.setdefault(conc,{}).setdefault(cell,{}).setdefault(state,{})\
                 .setdefault(indice,{}).setdefault(disp,{}).setdefault(direction,{}).setdefault(field,{})['energy'] = row.energy
@@ -121,8 +132,6 @@ class ForceExtrapolationData:
                                 .setdefault(disp,{})[indice] = dmudR
 
 
-        
-    
     def get_dFdG(self):
 
         for conc in self.vibresults:
@@ -160,7 +169,31 @@ class ForceExtrapolationData:
                                     self.dFdG.setdefault(conc,{}).setdefault(cell,{})\
                                         .setdefault(state,{}).setdefault(direc,{})[disp].append(dFdG)
 
-                                    
+    def get_reaction_path(self):
+        """Gets the reaction path from the atoms object
+        """
+        ## check if the atoms are on the same side of the unit cell
+        cell = atomsIS.get_cell()
+        cellx = cell[0,0] ; celly = cell[1,1]
+        posit = self.atomsIS.get_positions() - self.atomsFS.get_positions()
+        ## iterate through indices to check if the distances are greater than the norm
+        for ind in indices:
+
+
+            
+        posit = np.ravel(posit[indices])
+        nposit = []
+        for i, p in enumerate(posit):
+            if (i+1) % 3 == 0:
+                nposit.append(p)
+            else:
+                nposit.append(0)
+        self.modes.append(posit / np.linalg.norm(posit))
+
+
+
+
+
 class EigenModesHessian:
     """
     
