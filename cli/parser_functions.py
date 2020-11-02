@@ -63,11 +63,12 @@ def _initialize_specifics(level):
 
     # possibities to check when parsing a directory
     states_possible = ['state_', 'states_', 'slab','CO_site', 'CH', 'Li', 'Pb', 'IS', 'FS', \
-            'wf', 'neb', 'cineb', 'TS', 'OH', 'CO2']
+            'wf', 'neb', 'cineb', 'TS', 'OH', 'CO2', 'CHE']
     facets_possible = ['DV', 'SW', 'SV', 'DV4N', 'facet']
     cell_size_possible = ['x']
     structure_possible = ['structure', 'image_', 'theta_']
-    sampling_possible = ['sampling', 'ps', 'disp_']
+    sampling_possible = ['sampling', 'ps',]
+    displacement_possible = ['disp_']
     termination_possible = ['termination']
     proton_conc_possible = ['_conc']
     dopant_p_block_possible = ['_doped']
@@ -88,6 +89,7 @@ def _initialize_specifics(level):
                      'dopant_number':dopant_number_possible,
                      'findiff':findiff_possible,
                      'metal_dopant':metal_dopant_possible,
+                     'displacement':displacement_possible,
                     }
     states = np.nan
     facet = np.nan
@@ -124,9 +126,11 @@ def check_if_complete():
     return completed_files
 
 
-def data_to_store(level, db):
+def data_to_store(level, db, consider):
+
     from parser_class import Parser
     from neb_parser_class import NebParser
+
     initialize = _initialize_specifics(level)
     possibilities = initialize['possibilities']
     variable_poss = initialize['variable_poss']
@@ -135,6 +139,9 @@ def data_to_store(level, db):
     already_complete = check_if_complete()
     homedirs = [ fil for fil in homedirs_all if fil not in already_complete ]
 
+    if bool(consider):
+        ## Limit on the homedir - check if string exists
+        homedirs = [fil for fil in homedirs if consider in fil]
 
     for i in range(len(homedirs)):
         data = {}

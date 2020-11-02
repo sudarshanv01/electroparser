@@ -194,11 +194,15 @@ class Parser:
             test = subprocess.Popen("grep 'Dipole-layer corrected work functions' "+self.homedir+"/"+filename,\
                     shell=True,stdout=subprocess.PIPE).communicate()[0].decode('utf-8')
             if test == '':
-                self.implicit = False
                 self.wf = np.nan
             else:
-                self.implicit = True
                 self.wf = float(test.split()[-2])
+            test = subprocess.Popen("grep 'SJM' "+self.homedir+"/"+filename,\
+                    shell=True,stdout=subprocess.PIPE).communicate()[0].decode('utf-8')
+            if test == '':
+                self.implicit = False
+            else:
+                self.implicit = True
 
     # Gets the electric field in the calculation
     def get_field(self):
