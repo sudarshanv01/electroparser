@@ -67,7 +67,7 @@ def _initialize_specifics(level):
     facets_possible = ['DV', 'SW', 'SV', 'DV4N', 'facet']
     cell_size_possible = ['x']
     structure_possible = ['structure', 'image_', 'theta_']
-    sampling_possible = ['sampling', 'ps',]
+    sampling_possible = ['sampling', 'ps','calculations']
     displacement_possible = ['disp_']
     termination_possible = ['termination']
     proton_conc_possible = ['_conc']

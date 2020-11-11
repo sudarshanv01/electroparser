@@ -144,7 +144,7 @@ class Parser:
                     self.occupancy = abs(float(occupancies[0].split('\n')[0]))
         except FileNotFoundError:
             print('No occupancy data for spinpol calculation')
-            self.spin_pol = np.nan
+            # self.spin_pol = np.nan
 
 
     # Get the workfunction if files are available

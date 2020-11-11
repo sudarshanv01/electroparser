@@ -65,7 +65,8 @@ class ForceExtrapolation:
         self.conc = conc
         self.cell_size = cell_size
 
-        self.db_params['proton_conc'] = self.conc
+        if bool(self.conc):
+            self.db_params['proton_conc'] = self.conc
         self.db_params['cell_size'] =  self.cell_size
 
         # Default get the information from the forces and the electic field 
@@ -96,7 +97,8 @@ class ForceExtrapolation:
             direction = 'p' if 'p' in indice_str else 'm'
 
             field = row.field
-            indice = int(indice_str.split(direction)[0])
+            indice = [int(a) for a in indice_str[:-2].split('_')] #int(indice_str.split(direction)[0])
+            indice_s = indice_str[:-2]
 
             try:
                 disp = float(row.sampling.split('_')[-2])
@@ -116,22 +118,22 @@ class ForceExtrapolation:
 
             forces = atoms.get_forces()[indice]
             self.vibresults.setdefault(state,{})\
-                .setdefault(indice,{}).setdefault(disp,{}).setdefault(direction,{}).setdefault(field,{})['energy'] = row.energy
+                .setdefault(indice_s,{}).setdefault(disp,{}).setdefault(direction,{}).setdefault(field,{})['energy'] = row.energy
             self.vibresults.setdefault(state,{})\
-                .setdefault(indice,{}).setdefault(disp,{}).setdefault(direction,{}).setdefault(field,{})['forces'] = forces
+                .setdefault(indice_s,{}).setdefault(disp,{}).setdefault(direction,{}).setdefault(field,{})['forces'] = forces
             self.vibresults.setdefault(state,{})\
-                .setdefault(indice,{}).setdefault(disp,{}).setdefault(direction,{}).setdefault(field,{})['dipole'] = dipole
+                .setdefault(indice_s,{}).setdefault(disp,{}).setdefault(direction,{}).setdefault(field,{})['dipole'] = dipole
     
     
     def get_dmudR(self):
         for indice in self.indices:
             for state in self.vibresults:
 
-                try:
-                    mu_p = self.vibresults[state][indice][self.displacement]['p'][0.0]['dipole']
-                    mu_m = self.vibresults[state][indice][self.displacement]['m'][0.0]['dipole']
-                except KeyError:
-                    continue
+                # try:
+                mu_p = self.vibresults[state][str(indice)][self.displacement]['p'][0.0]['dipole']
+                mu_m = self.vibresults[state][str(indice)][self.displacement]['m'][0.0]['dipole']
+                # except KeyError:
+                #     continue
 
                 delta_mu = mu_p - mu_m
                 dmudR = delta_mu / 2 / self.displacement
@@ -147,8 +149,8 @@ class ForceExtrapolation:
                 fields = []
 
                 try:
-                    for field in self.vibresults[state][indice][self.displacement][self.direction]:
-                        fields_forces[field] = self.vibresults[state][indice][self.displacement][self.direction][field]['forces']
+                    for field in self.vibresults[state][str(indice)][self.displacement][self.direction]:
+                        fields_forces[field] = self.vibresults[state][str(indice)][self.displacement][self.direction][field]['forces']
                         fields.append(field)
                 except KeyError:
                     continue
