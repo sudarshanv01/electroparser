@@ -1,7 +1,3 @@
-#!/usr/bin/python
-
-
-""" Functions for helping restart calculations """
 import sys, subprocess, os
 import numpy as np
 from pprint import pprint

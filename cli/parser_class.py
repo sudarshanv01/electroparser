@@ -22,6 +22,8 @@ from ase.vibrations import Vibrations
 from glob import glob
 from useful_functions import d_band_info, get_bands_DOS
 from copy import deepcopy 
+import json
+import ase
 
 class Parser:
 
@@ -49,7 +51,9 @@ class Parser:
         self.pw = 0.0 # plane wae cutoff
         self.d_centre_up = 0.0 # d band centre up
         self.d_centre_down = 0.0 # d band centre down
-        self.d_width = 0.0 # width of d band
+        self.width = 0.0 # width of d band
+        self.width_up = 0.0 # width of d band
+        self.width_down = 0.0 # width of d band
         self.max_hilbert = 0.0 #max of hilbert
         self.max_hilbert_up = 0.0 # max hilbert up
         self.max_hilbert_down = 0.0 # max hilbert down
@@ -61,6 +65,10 @@ class Parser:
         self.bader = False # Bool to indicate that the bader charges exits
         self.ir_intensity = 0.0
         self.raman_intensity = 0.0
+        self.eigenval = {} #eigenvalues if available
+        self.pdos = {} # projected dos if available
+        self.Vxy = {} # xy-averages potential if available
+        self.sp_energy = 0.0 # Energy of sp if relaxation
 
         ### UNITS
         self.units = {'debye2eA':0.20819434}
@@ -77,6 +85,9 @@ class Parser:
         self.get_vibrations()
         #self.get_spectra() # Gets the IR and Raman spectra if exists
         self.attach_bader()
+        self.get_eigenvals()
+        self.get_pdos()
+        self.get_Vxy()
 
 
 
@@ -85,19 +96,23 @@ class Parser:
 
         # Written in order of which it should parse
         codes = {
-        'qe':[ 'qn.traj', 'bfgs.traj', 'spe.traj', 'aiida.out'],
+        'qe':[ 'qn.traj', 'bfgs.traj', 'spe.traj', 'aiida.out', 'log'],
         'vasp':['OUTCAR', 'vasprun.xml', 'CONTCAR', 'POSCAR'],
-        'gpaw':['gpaw.traj'],
+        'gpaw':['gpaw.traj', 'out.txt'],
         #'gpaw':['qn_gpaw.traj', 'init_gpaw.traj'],
             }
+        success = False
         for code in codes:
+            if success:
+                break
             for f in codes[code]:
                 filetype = Path(self.homedir + f)
                 if filetype.is_file():
+                    success = True
                     print('Storing ' + f + ' as atoms object')
                     try:
                         self.atoms = read(filetype)
-                    except ValueError:
+                    except (ValueError, StopIteration):
                         print('WARNING: could not store ' + f )
                     self.code = code
                     if f == 'POSCAR':
@@ -106,7 +121,15 @@ class Parser:
                             s = ener_f.read()
                             self.energy = float(s)
                     break
-
+        ## check if information about the first run is available 
+        try:
+            all_atoms = read(filetype, ':')
+            self.sp_energy = all_atoms[0].get_potential_energy()
+        except ase.calculators.calculator.PropertyNotImplementedError:
+            pass
+        except FileNotFoundError:
+            pass
+    
     # Get the d band center and d band width
     def get_d_info(self):
         try:
@@ -131,7 +154,7 @@ class Parser:
                 else:
                     self.max_hilbert = float(max_hils[0].split('\n')[0])
         except FileNotFoundError:
-            print('No information about hilbert maximum')
+            # print('No information about hilbert maximum')
             self.spin_pol = np.nan
 
         try:
@@ -143,9 +166,42 @@ class Parser:
                 else:
                     self.occupancy = abs(float(occupancies[0].split('\n')[0]))
         except FileNotFoundError:
-            print('No occupancy data for spinpol calculation')
+            # print('No occupancy data for spinpol calculation')
+            pass
+            # self.spin_pol = np.nan
+        
+        try: 
+            with open(self.homedir + 'd_width.txt') as f:
+                width = f.readlines()
+                if len(width) == 2:
+                    self.width_up = abs(float(width[0]))
+                    self.width_down = abs(float(width[1]))
+                else:
+                    self.width = abs(float(width[0].split('\n')[0]))
+        except FileNotFoundError:
+            # print('No width data')
+            pass
             # self.spin_pol = np.nan
 
+    def get_eigenvals(self):
+        ## get the eigenvalues for a GPAW calculation
+        if self.code == 'gpaw':
+            files = glob(os.path.join(self.homedir, 'eigenvals*'))
+            data = {}
+            for f in files:
+                filename = f.split('/')[-1]
+                data[filename] = np.loadtxt(f)
+            self.eigenval = data
+
+    def get_pdos(self):
+        if 'pdos.json' in os.listdir(self.homedir):
+            with open(os.path.join(self.homedir, 'pdos.json'), 'r') as handle:
+                self.pdos = json.load(handle)
+
+    def get_Vxy(self):
+        if 'Vxy.json' in os.listdir(self.homedir):
+            with open(os.path.join(self.homedir, 'Vxy.json'), 'r') as handle:
+                self.Vxy = json.load(handle)
 
     # Get the workfunction if files are available
     def get_wf(self):
@@ -182,23 +238,28 @@ class Parser:
                 self.wf = qe_wf.get_wf_implicit(self.homedir)
 
         elif self.code == 'gpaw':
-            try:
-                subprocess.check_output(['grep',  "Dipole-layer",  self.homedir+'gpaw.txt'])
-                filename = 'gpaw.txt'
-            except subprocess.CalledProcessError:
+            possible_gpaw_filename = ['gpaw.txt', 'gpaw.log', 'out.txt']
+            for f in possible_gpaw_filename:
                 try:
-                    subprocess.check_output(['grep',  "Dipole-layer",  self.homedir+'gpaw.log'])
-                    filename = 'gpaw.log'
+                    subprocess.check_output(['grep',  "Dipole-layer",  self.homedir+f])
+                    filename = f
+                    break
                 except subprocess.CalledProcessError:
-                    filename = 'gpaw.log'
-            test = subprocess.Popen("grep 'Dipole-layer corrected work functions' "+self.homedir+"/"+filename,\
-                    shell=True,stdout=subprocess.PIPE).communicate()[0].decode('utf-8')
+                    continue
+            try:
+                test = subprocess.Popen("grep 'Dipole-layer corrected work functions' "+self.homedir+"/"+filename,\
+                        shell=True,stdout=subprocess.PIPE).communicate()[0].decode('utf-8')
+            except UnboundLocalError:
+                test = ''
             if test == '':
                 self.wf = np.nan
             else:
                 self.wf = float(test.split()[-2])
-            test = subprocess.Popen("grep 'SJM' "+self.homedir+"/"+filename,\
-                    shell=True,stdout=subprocess.PIPE).communicate()[0].decode('utf-8')
+            try:
+                test = subprocess.Popen("grep 'SJM' "+self.homedir+"/"+filename,\
+                        shell=True,stdout=subprocess.PIPE).communicate()[0].decode('utf-8')
+            except UnboundLocalError:
+                test = ''
             if test == '':
                 self.implicit = False
             else:
@@ -227,19 +288,19 @@ class Parser:
                     self.field = float(field_text.replace('d', 'e'))
                 
         elif self.code == 'gpaw':
-            try:
-                subprocess.check_output(['grep',  "Dipole-layer",  self.homedir+'gpaw.txt'])
-                filename = 'gpaw.txt'
-            except subprocess.CalledProcessError:
+            possible_gpaw_filename = ['gpaw.txt', 'gpaw.log', 'out.txt']
+            for f in possible_gpaw_filename:
                 try:
-                    subprocess.check_output(['grep',  "Dipole-layer",  self.homedir+'gpaw.log'])
-                    filename = 'gpaw.log'
+                    subprocess.check_output(['grep',  "Dipole-layer",  self.homedir+f])
+                    filename = f
+                    break
                 except subprocess.CalledProcessError:
-                    #filename = 'gpaw.log'
-                    filename = 'log'
-
-            test = subprocess.Popen("grep ' Constant electric field:' "+self.homedir+"/"+filename,\
-                    shell=True,stdout=subprocess.PIPE).communicate()[0].decode('utf-8')
+                    continue
+            try:
+                test = subprocess.Popen("grep ' Constant electric field:' "+self.homedir+"/"+filename,\
+                        shell=True,stdout=subprocess.PIPE).communicate()[0].decode('utf-8')
+            except UnboundLocalError:
+                test = ''
             if test == '':
                 self.field = 0.0
             else:
@@ -265,6 +326,21 @@ class Parser:
             else:
                 # TODO: Find a better way of parsing the dipole moment
                 self.dipole = float(test.split()[-2]) * self.units['debye2eA']
+        elif self.code == 'gpaw':
+            possible_gpaw_filename = ['gpaw.txt', 'gpaw.log', 'out.txt']
+            for f in possible_gpaw_filename:
+                try:
+                    subprocess.check_output(['grep',  "Dipole-layer",  self.homedir+f])
+                    filename = f
+                    break
+                except subprocess.CalledProcessError:
+                    continue
+            try:
+                test = subprocess.Popen("grep 'Dipole moment' "+self.homedir+"/"+filename,\
+                        shell=True,stdout=subprocess.PIPE).communicate()[0].decode('utf-8')
+                self.dipole = float(test.split()[-2].replace(')',''))
+            except UnboundLocalError:
+                pass
 
     def get_charge(self):
         if self.code == 'vasp':
@@ -438,9 +514,6 @@ class Parser:
         with open(self.homedir + '/raman_intensity.txt') as f:
             self.raman_intensity = float(f.readline())
 
-            
-
-                
     def attach_bader(self):
         acf= Path(self.homedir + '/ACF.dat')
         acf_folder = Path(self.homedir + '/bader/ACF.dat')

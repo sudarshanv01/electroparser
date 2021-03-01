@@ -1,8 +1,3 @@
-#!/usr/bin/python
-
-""" Check if a calculation has finished """
-""" If it has not resubmit it """
-
 from parser_functions import _get_homedir
 from restart_functions import  _status_calc, _restart_calc
 import sys, os

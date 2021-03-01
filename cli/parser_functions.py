@@ -157,7 +157,7 @@ def data_to_store(level, db, consider):
         pprint(data)
         # Check if parsing a neb or a static calculation
         try:
-            if 'neb' in  data['states']:
+            if 'xneb' in  data['states']:
                 print('Parsing neb from folder:' + homedir)
                 neb_run = True
                 base = data['states']
@@ -189,6 +189,7 @@ def data_to_store(level, db, consider):
                     data['functional'] = parse.functional
                     metadata['ldau'] = parse.ldau_data
                     data['states'] = base + str(index)
+                    metadata['eigenvalues'] = parse.eigenval
                     #data['ir_intensity'] = parse.ir_intensity
                     #data['sigma_raman'] = parse.raman_intensity
 
@@ -204,11 +205,17 @@ def data_to_store(level, db, consider):
             except ValueError:
                 print('Skipping {s}, something wrong with the WF parsing'.format(s=homedir))
                 continue
+            except RuntimeError:
+                print('Skipping ' + homedir)
+                continue
             except AssertionError:
                 print('Skipping {s}, something wrong with the QE output'.format(s=homedir))
                 continue
             except ase.io.formats.UnknownFileTypeError:
                 print('Error reading ASE atoms file')
+                continue
+            except ase.io.ParseError:
+                print('Error Reading OUTCAR')
                 continue
             metadata = {}
 
@@ -229,22 +236,32 @@ def data_to_store(level, db, consider):
                 data['functional'] = parse.functional
                 data['ldau'] = parse.ldau
                 metadata['vibrations'] = parse.vibrations
+                metadata['eigenvalues'] = parse.eigenval
+                metadata['pdos'] = parse.pdos
+                metadata['Vxy'] = parse.Vxy
+                data['sp_energy'] = parse.sp_energy
                 if data['ldau']:
                     # This is a LDA+U calculation 
                     metadata['ldau'] = parse.ldau_data
-                # Only save d-band data for slab calculations
-                if isinstance(parse.spin_pol, bool) and 'slab' in data['states']:
-                    if parse.spin_pol:
-                        data['d_centre_up'] = parse.d_centre_up
-                        data['d_centre_down'] = parse.d_centre_down
-                        data['max_hilbert_up'] = parse.max_hilbert_up
-                        data['max_hilbert_down'] = parse.max_hilbert_down
-                        data['occupancy_up'] = parse.occupancy_up
-                        data['occupancy_down'] = parse.occupancy_down
-                    else:
-                        data['d_centre'] = parse.d_centre
-                        data['max_hilbert'] = parse.max_hilbert
-                        data['occupancy'] = parse.occupancy
+                try:
+                    # Only save d-band data for slab calculations
+                    if 'slab' in data['states']:
+                       if parse.spin_pol:
+                           data['d_centre_up'] = parse.d_centre_up
+                           data['d_centre_down'] = parse.d_centre_down
+                           data['max_hilbert_up'] = parse.max_hilbert_up
+                           data['max_hilbert_down'] = parse.max_hilbert_down
+                           data['occupancy_up'] = parse.occupancy_up
+                           data['occupancy_down'] = parse.occupancy_down
+                           data['d_width_up'] = parse.width_up
+                           data['d_width_down'] = parse.width_down
+                       else:
+                           data['d_centre'] = parse.d_centre
+                           data['max_hilbert'] = parse.max_hilbert
+                           # data['occupancy'] = parse.occupancy
+                           data['d_width'] = parse.width
+                except KeyError:
+                    pass
 
                 # Update energy if only POSCARS stored
                 if bool(parse.energy):
