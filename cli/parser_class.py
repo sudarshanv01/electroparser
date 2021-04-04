@@ -69,6 +69,7 @@ class Parser:
         self.pdos = {} # projected dos if available
         self.Vxy = {} # xy-averages potential if available
         self.sp_energy = 0.0 # Energy of sp if relaxation
+        self.vibdata = {}
 
         ### UNITS
         self.units = {'debye2eA':0.20819434}
@@ -88,6 +89,7 @@ class Parser:
         self.get_eigenvals()
         self.get_pdos()
         self.get_Vxy()
+        self.get_vibdata()
 
 
 
@@ -96,9 +98,9 @@ class Parser:
 
         # Written in order of which it should parse
         codes = {
-        'qe':[ 'qn.traj', 'bfgs.traj', 'spe.traj', 'aiida.out', 'log'],
+        'qe':[ 'bfgs.traj', 'spe.traj', 'aiida.out', 'log'],
         'vasp':['OUTCAR', 'vasprun.xml', 'CONTCAR', 'POSCAR'],
-        'gpaw':['gpaw.traj', 'out.txt'],
+        'gpaw':[ 'qn.traj', 'gpaw.traj', 'out.txt'],
         #'gpaw':['qn_gpaw.traj', 'init_gpaw.traj'],
             }
         success = False
@@ -202,6 +204,14 @@ class Parser:
         if 'Vxy.json' in os.listdir(self.homedir):
             with open(os.path.join(self.homedir, 'Vxy.json'), 'r') as handle:
                 self.Vxy = json.load(handle)
+
+    def get_vibdata(self):
+        ## reads in the vibrational data in a folder called
+        ## frequencies
+        if 'frequencies' in os.listdir(self.homedir):
+            if 'vibdata.json' in os.listdir(os.path.join(self.homedir, 'frequencies')):
+                with open(os.path.join(self.homedir, 'frequencies', 'vibdata.json'), 'r') as handle:
+                    self.vibdata = json.load(handle) 
 
     # Get the workfunction if files are available
     def get_wf(self):
@@ -489,10 +499,10 @@ class Parser:
     def get_vibrations(self):
 
         if self.code == 'vasp':
-            if Path(self.homedir + '/vasp_freq').is_dir():
+            if Path(self.homedir + '/vasp_freq_').is_dir():
                 # Needs a vib directory where VASP vibration calc
                 # has run 
-                test = subprocess.Popen("grep 'cm-1' "+self.homedir+"/vasp_freq/OUTCAR",\
+                test = subprocess.Popen("grep 'cm-1' "+self.homedir+"/vasp_freq_/OUTCAR",\
                                  shell=True,stdout=subprocess.PIPE).communicate()[0].decode('utf-8')
                 ltest = test.split('\n')
                 freq = []
@@ -505,6 +515,7 @@ class Parser:
                     elif 'f/i=' in data and len(data) > 0:
                         im_freq.append(float(data[-4]))
                 # Store only real vibrations
+                print(freq)
                 self.vibrations = freq
     
     def get_spectra(self):

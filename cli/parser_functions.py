@@ -15,7 +15,7 @@ def _get_dirs(homedir):
     # Also returns if state information is provided
 
     directories = []
-    dont_look_here = ['noparse', 'cineb', 'neb', 'archive', 'initial_structures', 'template_scripts', 'output', 
+    dont_look_here = ['noparse', 'cineb', 'neb', 'archive', 'initial_structures', 'template_scripts', 
             ]
 
     for direct in os.listdir(homedir):
@@ -240,6 +240,7 @@ def data_to_store(level, db, consider):
                 metadata['pdos'] = parse.pdos
                 metadata['Vxy'] = parse.Vxy
                 data['sp_energy'] = parse.sp_energy
+                metadata['vibdata'] = parse.vibdata
                 if data['ldau']:
                     # This is a LDA+U calculation 
                     metadata['ldau'] = parse.ldau_data
