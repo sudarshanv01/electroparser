@@ -202,9 +202,9 @@ def data_to_store(level, db, consider):
             except IndexError:
                 print('Skipping '  + homedir)
                 continue
-            except ValueError:
-                print('Skipping {s}, something wrong with the WF parsing'.format(s=homedir))
-                continue
+            # except ValueError:
+            #     print('Skipping {s}, something wrong with the WF parsing'.format(s=homedir))
+            #     continue
             except RuntimeError:
                 print('Skipping ' + homedir)
                 continue
@@ -241,6 +241,7 @@ def data_to_store(level, db, consider):
                 metadata['Vxy'] = parse.Vxy
                 data['sp_energy'] = parse.sp_energy
                 metadata['vibdata'] = parse.vibdata
+                metadata['extrapolation'] = parse.extrapolation
                 if data['ldau']:
                     # This is a LDA+U calculation 
                     metadata['ldau'] = parse.ldau_data

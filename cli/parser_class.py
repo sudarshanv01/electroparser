@@ -9,7 +9,6 @@ from ase.db import connect
 import numpy as np
 import os, sys
 from pathlib import Path
-sys.path.append('/home/cat/vijays/tools/scripts')
 import get_wf as qe_wf
 from get_wf import get_wf_initial_implicit
 import get_wf_vasp as vasp_wf
@@ -70,6 +69,7 @@ class Parser:
         self.Vxy = {} # xy-averages potential if available
         self.sp_energy = 0.0 # Energy of sp if relaxation
         self.vibdata = {}
+        self.extrapolation = {}
 
         ### UNITS
         self.units = {'debye2eA':0.20819434}
@@ -90,6 +90,7 @@ class Parser:
         self.get_pdos()
         self.get_Vxy()
         self.get_vibdata()
+        self.get_extrapolation()
 
 
 
@@ -100,7 +101,7 @@ class Parser:
         codes = {
         'qe':[ 'bfgs.traj', 'spe.traj', 'aiida.out', 'log'],
         'vasp':['OUTCAR', 'vasprun.xml', 'CONTCAR', 'POSCAR'],
-        'gpaw':[ 'qn.traj', 'gpaw.traj', 'out.txt'],
+        'gpaw':[ 'qn.traj', 'gpaw.traj', 'out.txt', 'out.traj'],
         #'gpaw':['qn_gpaw.traj', 'init_gpaw.traj'],
             }
         success = False
@@ -212,6 +213,13 @@ class Parser:
             if 'vibdata.json' in os.listdir(os.path.join(self.homedir, 'frequencies')):
                 with open(os.path.join(self.homedir, 'frequencies', 'vibdata.json'), 'r') as handle:
                     self.vibdata = json.load(handle) 
+
+    def get_extrapolation(self):
+        ## reads in the extrapollation data in a folder called extrapolation
+        if 'extrapolation' in os.listdir(self.homedir):
+            if 'extrapolation.json' in os.listdir(os.path.join(self.homedir, 'extrapolation')):
+                with open(os.path.join(self.homedir, 'extrapolation', 'extrapolation.json'), 'r') as handle:
+                    self.extrapolation = json.load(handle) 
 
     # Get the workfunction if files are available
     def get_wf(self):
