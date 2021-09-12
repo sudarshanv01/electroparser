@@ -8,6 +8,7 @@ import ase
 from copy import deepcopy
 import numpy as np
 from pprint import pprint
+from ase.io import read
 
 # Gets the needed directories directly under the homedir given
 def _get_dirs(homedir):
@@ -63,7 +64,7 @@ def _initialize_specifics(level):
 
     # possibities to check when parsing a directory
     states_possible = ['state_', 'states_', 'slab','CO_site', 'CH', 'Li', 'Pb', 'IS', 'FS', \
-            'wf', 'neb', 'cineb', 'TS', 'OH', 'CO2', 'CHE']
+            'wf', 'neb', 'cineb', 'TS', 'OH', 'CO2', 'CHE', 'run_']
     facets_possible = ['DV', 'SW', 'SV', 'DV4N', 'facet']
     cell_size_possible = ['x']
     structure_possible = ['structure', 'image_', 'theta_']
@@ -160,10 +161,16 @@ def data_to_store(level, db, consider):
             if 'xneb' in  data['states']:
                 print('Parsing neb from folder:' + homedir)
                 neb_run = True
+                aimd_run = False
                 base = data['states']
+            elif 'run' in data['states']:
+                aimd_run = True
+                neb_run = False
+                print('Parsing AIMD from folder: ' + homedir)
             else:
                 print('Parsing folder:'  + homedir)
                 neb_run = False
+                aimd_run = False
         except KeyError:
             neb_run = False
 
@@ -195,16 +202,24 @@ def data_to_store(level, db, consider):
 
                     db.write(**data)
 
-
+        elif aimd_run:
+            try:
+                atoms_all = read(os.path.join(homedir,'vasprun.xml'),':')
+            except FileNotFoundError:
+                continue
+            for i, atoms in enumerate(atoms_all):
+                data['atoms'] = atoms
+                data['sampling'] = i
+                db.write(**data)
         else:
             try:
                 parse = Parser(homedir)
             except IndexError:
                 print('Skipping '  + homedir)
                 continue
-            # except ValueError:
-            #     print('Skipping {s}, something wrong with the WF parsing'.format(s=homedir))
-            #     continue
+            except ValueError:
+                print('Skipping {s}, something wrong with the WF parsing'.format(s=homedir))
+                continue
             except RuntimeError:
                 print('Skipping ' + homedir)
                 continue

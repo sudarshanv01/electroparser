@@ -220,6 +220,10 @@ class Parser:
             if 'extrapolation.json' in os.listdir(os.path.join(self.homedir, 'extrapolation')):
                 with open(os.path.join(self.homedir, 'extrapolation', 'extrapolation.json'), 'r') as handle:
                     self.extrapolation = json.load(handle) 
+        elif 'extrapolation' in os.listdir(os.path.join(self.homedir, '..')):
+            if 'extrapolation.json' in os.listdir(os.path.join(self.homedir,'..','extrapolation')):
+                with open(os.path.join(self.homedir, '..', 'extrapolation', 'extrapolation.json'), 'r') as handle:
+                    self.extrapolation = json.load(handle) 
 
     # Get the workfunction if files are available
     def get_wf(self):
