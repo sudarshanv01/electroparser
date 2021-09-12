@@ -3,7 +3,7 @@ ElectroParser
 
 This package stores important quantities, like atoms objects into ASE databases. In addition, quantities such as surface dipole moments, workfunctions will also be stored. 
 
-Note: These scripts were / are written during my PhD and are in continuous developement, feel free to clone, develop and make your own! ASE Databases make parsing calculations for plotting exceptionally easy, more details can be found here: https://wiki.fysik.dtu.dk/ase/ase/db/db.html
+Note: These scripts were / are written during my PhD and are in continuous developement. ASE Databases make parsing calculations for plotting exceptionally easy, more details can be found here: https://wiki.fysik.dtu.dk/ase/ase/db/db.html
 
 ## Details
 
