@@ -9,17 +9,16 @@ from ase.db import connect
 import numpy as np
 import os, sys
 from pathlib import Path
-sys.path.append('/home/cat/vijays/tools/scripts')
-import get_wf as qe_wf
-from get_wf import get_wf_initial_implicit
-import get_wf_vasp as vasp_wf
+from electroparser.cli.parse_wf import get_wf as qe_wf
+from electroparser.cli.parse_wf import get_wf_initial_implicit
+from electroparser.cli import parse_wf_vasp as vasp_wf
 import re
 from ase import units
 import glob
 import subprocess
 from ase.vibrations import Vibrations
 from glob import glob
-from useful_functions import d_band_info, get_bands_DOS
+from electroparser.cli.useful_functions import d_band_info, get_bands_DOS
 
 class NebParser:
     # Class that parses a neb

@@ -1,0 +1,26 @@
+{
+    "author": "Sudarshan Vijay",
+    "classifiers": [
+        "Development Status :: 1 - Planning",
+        "Operating System :: POSIX :: Linux",
+        "Operating System :: MacOS :: MacOS X",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9"
+    ],
+    "description": "Parses the aimd trajectories and puts them into an ASE database.",
+    "python_requires": ">=3.8",
+    "install_requires": [
+        "numpy",
+        "scipy",
+        "matplotlib",
+        "ase",
+        "click"
+    ],
+    "entry_points": {
+        "console_scripts": ["electroparser = electroparser.cli.parser:main"]
+    },
+    "license": "MIT License",
+    "name": "electroparser",
+    "version": "0.0.01"
+}

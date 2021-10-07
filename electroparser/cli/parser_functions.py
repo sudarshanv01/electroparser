@@ -9,6 +9,8 @@ from copy import deepcopy
 import numpy as np
 from pprint import pprint
 from ase.io import read
+from electroparser.cli.parser_class import Parser
+from electroparser.cli.neb_parser_class import NebParser
 
 # Gets the needed directories directly under the homedir given
 def _get_dirs(homedir):
@@ -129,8 +131,6 @@ def check_if_complete():
 
 def data_to_store(level, db, consider):
 
-    from parser_class import Parser
-    from neb_parser_class import NebParser
 
     initialize = _initialize_specifics(level)
     possibilities = initialize['possibilities']
@@ -173,6 +173,7 @@ def data_to_store(level, db, consider):
                 aimd_run = False
         except KeyError:
             neb_run = False
+            aimd_run = False
 
         # Invoke and instance of the Parser class
         if neb_run:
@@ -201,7 +202,6 @@ def data_to_store(level, db, consider):
                     #data['sigma_raman'] = parse.raman_intensity
 
                     db.write(**data)
-
         elif aimd_run:
             try:
                 atoms_all = read(os.path.join(homedir,'vasprun.xml'),':')

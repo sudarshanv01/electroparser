@@ -1,5 +1,5 @@
 import sys, os
-from parser_functions import data_to_store
+from electroparser.cli.parser_functions import data_to_store
 from ase.db import connect
 import click
 
